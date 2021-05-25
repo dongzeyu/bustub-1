@@ -15,6 +15,7 @@
 #include <list>
 #include <mutex>  // NOLINT
 #include <vector>
+#include <deque>
 
 #include "buffer/replacer.h"
 #include "common/config.h"
@@ -47,6 +48,9 @@ class LRUReplacer : public Replacer {
 
  private:
   // TODO(student): implement me!
+  size_t capacity;
+  std::deque<frame_id_t> queue_;
+  std::mutex lru_mutex;
 };
 
 }  // namespace bustub
