@@ -23,14 +23,15 @@ ClockReplacer::~ClockReplacer() = default;
 
 bool ClockReplacer::Victim(frame_id_t *frame_id) 
 { 
-    // if(circle_.empty())  {
-    //     return false;
-    // }
-    // if(circle_[pointer_].second == 0){
-    //     *frame_id = circle_[pointer_].first;
-    //     circle_.erase(find(circle_.begin(), ))
-    //     return true;
-    // }
+    if(circle_.empty()) {
+        return false;
+    }
+    if(circle_[pointer_].second == 0){
+        *frame_id = circle_[pointer_].first;
+        circle_.erase(circle_.begin() + pointer_);
+        return true;
+    }
+    
 
     return true; 
 }

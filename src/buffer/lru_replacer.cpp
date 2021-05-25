@@ -50,16 +50,21 @@ void LRUReplacer::Pin(frame_id_t frame_id)
 //suppose the insert sequence 1,2,3,1
 //before insert the second 1, the LRU is 3->2->1, 
 //when insert another 1, the position of 1 shoule be adjusted., because it's just visited.
-void LRUReplacer::Unpin(frame_id_t frame_id) 
+//Why not do this?
+void LRUReplacer::Unpin(frame_id_t frame_id)
 {
     std::scoped_lock lru_lock(lru_mutex);
     auto it = find(queue_.begin(), queue_.end(), frame_id);
-    if(it == queue_.end()){
+    if(it == queue_.end()){  //not in LRU, just add
         if(queue_.size() == capacity){
             queue_.pop_back();
         }
         queue_.push_front(frame_id);
     }
+    // else{         //already in LRU, remove before add
+    //     queue_.erase(it);
+    //     queue_.push_front(frame_id);
+    // }
 }
 
 size_t LRUReplacer::Size() 

@@ -24,15 +24,15 @@
 namespace bustub {
 
 
-struct Entry{
-  frame_id_t frame_id;
-  int visited;
-  bool dirty;
-  Entry(frame_id_t id, int v, bool d=false) : frame_id(id), visited(v), dirty(d)
-  {
-    
-  }
-};
+// struct Entry{
+//   frame_id_t frame_id;
+//   int visited;
+//   bool dirty;
+//   Entry(frame_id_t id, int v, bool d=false) : frame_id(id), visited(v), dirty(d)
+//   {
+
+//   }
+// };
 
 /**
  * ClockReplacer implements the clock replacement policy, which approximates the Least Recently Used policy.
