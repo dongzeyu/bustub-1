@@ -50,49 +50,38 @@ Page *BufferPoolManager::FetchPageImpl(page_id_t page_id)
   //case1: the asked page is in LRU cache
   auto it = page_table_.find(page_id);
   if(it != page_table_.end()){
-    auto frame = pages_ + it->second;
-    frame->pin_count_++;
-    return frame;
-  }
-  //case2: the asked page is not in LRU cache, but there is a free frame in free_list.
-  if(free_list_.size() > 0){
-    auto frame_id = free_list_.front();
-    free_list_.pop_front();
-    page_table_[page_id] = frame_id;
+    auto frame_id = it->second;
     auto frame = pages_ + frame_id;
-    frame->page_id_ = page_id;
-    frame->pin_count_ = 1;
-    frame->ResetMemory();
-    disk_manager_->ReadPage(page_id, frame->data_);
-    frame->is_dirty_ = false;
+    // if(frame->GetPinCount() == 0){
+    //   frame->pin_count_ = 1;
+    // }
+    frame->pin_count_++;
+    replacer_->Pin(frame_id);
+    
     return frame;
   }
-  //case3: the asked page is not in LRU cache, and there is no free frame in free_list.
-  auto victim_frame_id = INVALID_PAGE_ID;
-  if(replacer_->Victim(&victim_frame_id)){
-    auto frame = pages_ + victim_frame_id;
-    auto victim_page_id = frame->GetPageId();
-    if(frame->IsDirty()){
-      FlushPageImpl(victim_page_id);
-    }
-    page_table_.erase(victim_page_id);
-    page_table_[page_id] = victim_frame_id;
-    frame->ResetMemory();
-    frame->pin_count_ = 1;
-    frame->page_id_ = page_id;
-    disk_manager_->ReadPage(page_id, frame->data_);
-    frame->is_dirty_ = false;
+
+  if(!is_all_pinned()){
+    auto frame_id = find_replace_frame();
+    auto frame = pages_ + frame_id;
+    page_table_[page_id] = frame_id;
+    init_new_page(page_id, frame_id);
+    disk_manager_->ReadPage(page_id, frame->GetData());
     return frame;
   }
+  
   return nullptr;
 }
-
+ 
+ //when a thread is not using one page anymore, the page shoule be unpinned.
+ //is_dirty: false for read and true for write.
+ //decrease the pin_count and put it into LRU
 bool BufferPoolManager::UnpinPageImpl(page_id_t page_id, bool is_dirty)
 { 
   std::scoped_lock bpm_lock(latch_);
 
   auto it = page_table_.find(page_id);
-  if(it == page_table_.end()){ //not in LRU cache
+  if(it == page_table_.end()){ //not in buffer pool
     return false;
   }
   
@@ -102,7 +91,7 @@ bool BufferPoolManager::UnpinPageImpl(page_id_t page_id, bool is_dirty)
     frame->pin_count_--;
   }
   if(frame->pin_count_ == 0){
-    replacer_->Unpin(frame_id);
+    replacer_->Unpin(frame_id);  //put into LRU
   }
   
   frame->is_dirty_ |= is_dirty;
@@ -110,21 +99,19 @@ bool BufferPoolManager::UnpinPageImpl(page_id_t page_id, bool is_dirty)
   return true;
 }
 
+//write the page back to disk
 bool BufferPoolManager::FlushPageImpl(page_id_t page_id) 
 {
   // Make sure you call DiskManager::WritePage!
 
   std::scoped_lock bpm_lock(latch_);
 
-  // if(page_id == INVALID_PAGE_ID){
-  //   return false;
-  // }
   auto it = page_table_.find(page_id);
-  if(it == page_table_.end()){
+  if(it == page_table_.end()){  //the page is not in disk
     return false;
   }
   auto frame = pages_ + it->second;
-  disk_manager_->WritePage(page_id, frame->data_);
+  disk_manager_->WritePage(page_id, frame->GetData());
   frame->is_dirty_ = false;   //when flush to disk, the frame's dirty bit should reset to false
   return true;
 }
@@ -139,46 +126,24 @@ Page *BufferPoolManager::NewPageImpl(page_id_t *page_id)
   // 4.   Set the page ID output parameter. Return a pointer to P.
 
   std::scoped_lock bpm_lock(latch_);
+
   //all pinned
-  if(free_list_.empty() && replacer_->Size() == 0){
+  if(is_all_pinned()){
     return nullptr;
   }
-  auto new_page_id = disk_manager_->AllocatePage();
-  // there is a free frame in free_list
-  if(!free_list_.empty()){
-    auto frame_id = free_list_.front();
-    free_list_.pop_front();
-    auto frame = pages_ + frame_id;
-    frame->ResetMemory();
-    frame->pin_count_ = 1;
-    frame->page_id_ = new_page_id;
-    frame->is_dirty_ = false;  //??
-    page_table_[new_page_id] = frame_id;
-    *page_id = new_page_id;
-    return frame;
-  }
-  //no free frame
-  auto victim_frame_id = INVALID_PAGE_ID;
-  if(replacer_->Victim(&victim_frame_id)){
-    auto frame = pages_ + victim_frame_id;
-    auto victim_page_id = frame->GetPageId();
-    if(frame->IsDirty()){
-      FlushPageImpl(victim_page_id);
-    }
-    frame->ResetMemory();
-    page_table_.erase(victim_page_id);
-    page_table_[new_page_id] = victim_frame_id;
-    frame->pin_count_ = 1;
-    frame->page_id_ = new_page_id;
-    frame->is_dirty_ = false;
-    *page_id = new_page_id;
-    return frame;
-  }
 
-  return nullptr;
+  auto new_page_id = disk_manager_->AllocatePage();
+
+  auto frame_id = find_replace_frame();
+  init_new_page(new_page_id, frame_id);
+  pages_[frame_id].ResetMemory();
+  page_table_[new_page_id] = frame_id;
+  *page_id = new_page_id;
+  return &pages_[frame_id];
+
 }
 
-bool BufferPoolManager::DeletePageImpl(page_id_t page_id) 
+bool BufferPoolManager::DeletePageImpl(page_id_t page_id)
 {
   // 0.   Make sure you call DiskManager::DeallocatePage!
   // 1.   Search the page table for the requested page (P).
@@ -239,5 +204,6 @@ frame_id_t BufferPoolManager::find_replace_frame()
   }
   return relpace_id;
 }
+
 
 }  // namespace bustub

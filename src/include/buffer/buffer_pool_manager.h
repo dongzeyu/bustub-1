@@ -172,16 +172,17 @@ class BufferPoolManager {
   /** helper function **/
   inline bool is_all_pinned()
   {
-    return free_list_.empty() && replacer_->size() == 0;
+    return free_list_.empty() && replacer_->Size() == 0;
   }
 
   inline void init_new_page(page_id_t page_id, frame_id_t frame_id)
   {
-    page_table_[page_id].page_id_ = frame_id;
-    page_table_[page_id].pin_count_ = 1;
-    page_table_[page_id].is_dirty_ = false;
+    pages_[frame_id].page_id_ = page_id;
+    pages_[frame_id].pin_count_ = 1;
+    pages_[frame_id].is_dirty_ = false;
   }
 
   frame_id_t find_replace_frame();
+
 };
 }  // namespace bustub

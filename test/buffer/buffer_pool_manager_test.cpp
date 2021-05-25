@@ -94,7 +94,7 @@ TEST(BufferPoolManagerTest, SampleTest) {
   auto *bpm = new BufferPoolManager(buffer_pool_size, disk_manager);
 
   page_id_t page_id_temp;
-  auto *page0 = bpm->NewPage(&page_id_temp);
+  auto *page0 = bpm->NewPage(&page_id_temp);  //0
 
   // Scenario: The buffer pool is empty. We should be able to create a new page.
   ASSERT_NE(nullptr, page0);
@@ -130,7 +130,7 @@ TEST(BufferPoolManagerTest, SampleTest) {
   // Scenario: If we unpin page 0 and then make a new page, all the buffer pages should
   // now be pinned. Fetching page 0 should fail.
   EXPECT_EQ(true, bpm->UnpinPage(0, true));
-  EXPECT_NE(nullptr, bpm->NewPage(&page_id_temp));
+  EXPECT_NE(nullptr, bpm->NewPage(&page_id_temp)); 
   EXPECT_EQ(nullptr, bpm->FetchPage(0));
 
   // Shutdown the disk manager and remove the temporary file we created.

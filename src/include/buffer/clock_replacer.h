@@ -16,6 +16,8 @@
 #include <mutex>  // NOLINT
 #include <vector>
 
+#include <deque>
+#include <map>
 #include "buffer/replacer.h"
 #include "common/config.h"
 
@@ -46,7 +48,9 @@ class ClockReplacer : public Replacer {
   size_t Size() override;
 
  private:
-  // TODO(student): implement me!
+  std::deque<std::pair<frame_id_t, int>> circle_;
+  size_t capacity;
+  size_t pointer_;
 };
 
 }  // namespace bustub
