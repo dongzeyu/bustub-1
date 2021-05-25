@@ -21,7 +21,7 @@ ClockReplacer::ClockReplacer(size_t num_pages) : capacity(num_pages), pointer_(0
 
 ClockReplacer::~ClockReplacer() = default;
 
-bool ClockReplacer::Victim(frame_id_t *frame_id) 
+bool ClockReplacer::Victim(frame_id_t *frame_id)
 { 
     if(circle_.empty()) {
         return false;
@@ -32,7 +32,6 @@ bool ClockReplacer::Victim(frame_id_t *frame_id)
         return true;
     }
     
-
     return true; 
 }
 
