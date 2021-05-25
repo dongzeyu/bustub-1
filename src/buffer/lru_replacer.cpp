@@ -47,6 +47,9 @@ void LRUReplacer::Pin(frame_id_t frame_id)
 }
 
 //means the frame is not be used, it can put in LRU.
+//suppose the insert sequence 1,2,3,1
+//before insert the second 1, the LRU is 3->2->1, 
+//when insert another 1, the position of 1 shoule be adjusted., because it's just visited.
 void LRUReplacer::Unpin(frame_id_t frame_id) 
 {
     std::scoped_lock lru_lock(lru_mutex);
