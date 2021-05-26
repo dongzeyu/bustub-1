@@ -134,6 +134,8 @@ Page *BufferPoolManager::NewPageImpl(page_id_t *page_id)
 
   auto new_page_id = disk_manager_->AllocatePage();
 
+  LOG_INFO("New page id is %d\n", new_page_id);
+  
   auto frame_id = find_replace_frame();
   init_new_page(new_page_id, frame_id);
   pages_[frame_id].ResetMemory();
