@@ -164,11 +164,11 @@ bool BufferPoolManager::DeletePageImpl(page_id_t page_id)
   if(frame->GetPinCount() > 0){
     return false;
   }
-  if(frame->IsDirty()){
-    FlushPageImpl(page_id);
-  }
+  // if(frame->IsDirty()){
+  //   FlushPageImpl(page_id);
+  // }
 
-  //replacer_->Pin(frame_id); //Why need this?
+  replacer_->Pin(frame_id); //remove from LRU, because it should be in free_list
 
   page_table_.erase(page_id);
   //frame->ResetMemory();

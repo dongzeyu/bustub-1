@@ -62,6 +62,7 @@ class ClockReplacer : public Replacer {
   std::deque<std::pair<frame_id_t, int>> circle_;
   size_t capacity;
   size_t pointer_;
+  std::mutex lru_mutex;
 };
 
 }  // namespace bustub

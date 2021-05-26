@@ -23,6 +23,8 @@ ClockReplacer::~ClockReplacer() = default;
 
 bool ClockReplacer::Victim(frame_id_t *frame_id)
 { 
+    std::scoped_lock lru_lock(lru_mutex);
+
     if(circle_.empty()) {
         return false;
     }
@@ -35,6 +37,7 @@ bool ClockReplacer::Victim(frame_id_t *frame_id)
     return true; 
 }
 
+//if frame is in LRU, remove it
 void ClockReplacer::Pin(frame_id_t frame_id) {}
 
 void ClockReplacer::Unpin(frame_id_t frame_id) {}
