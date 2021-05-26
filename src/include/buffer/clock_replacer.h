@@ -17,7 +17,7 @@
 #include <vector>
 
 #include <deque>
-#include <map>
+#include <unordered_map>
 #include "buffer/replacer.h"
 #include "common/config.h"
 
@@ -59,10 +59,13 @@ class ClockReplacer : public Replacer {
   size_t Size() override;
 
  private:
-  std::deque<std::pair<frame_id_t, int>> circle_;
+  std::deque<frame_id_t> circle_;
+  std::unordered_map<frame_id_t, int> visited;
   size_t capacity;
   size_t pointer_;
   std::mutex lru_mutex;
+
+  size_t find_remove_pos();
 };
 
 }  // namespace bustub
