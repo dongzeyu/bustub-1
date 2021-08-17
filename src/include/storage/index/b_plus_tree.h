@@ -10,16 +10,19 @@
 //===----------------------------------------------------------------------===//
 #pragma once
 
+#include <mutex>
 #include <queue>
 #include <string>
 #include <vector>
-
+#include "common/logger.h"
 #include "concurrency/transaction.h"
 #include "storage/index/index_iterator.h"
 #include "storage/page/b_plus_tree_internal_page.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
 
 namespace bustub {
+
+enum class Operation { SEARCH = 0, INSERT, DELETE };
 
 #define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator>
 
@@ -77,10 +80,27 @@ class BPlusTree {
   // read data from file and remove one by one
   void RemoveFromFile(const std::string &file_name, Transaction *transaction = nullptr);
   // expose for test purpose
-  Page *FindLeafPage(const KeyType &key, bool leftMost = false);
+  Page *FindLeafPage(const KeyType &key, bool leftMost = false, Transaction *txn = nullptr,
+                     Operation op = Operation::SEARCH);
+
+    int GetLeafMaxSize()const
+    {
+        return leaf_max_size_;
+    }
+
+    int GetInternalMaxSize()const
+    {
+        return internal_max_size_;
+    }
+
+    int GetHeight()const
+    {
+        return height_;
+    }
 
  private:
-  void StartNewTree(const KeyType &key, const ValueType &value);
+  // void StartNewTree(const KeyType &key, const ValueType &value);
+  void StartNewTree(const KeyType &key, const ValueType &value, Transaction *txn);
 
   bool InsertIntoLeaf(const KeyType &key, const ValueType &value, Transaction *transaction = nullptr);
 
@@ -94,7 +114,7 @@ class BPlusTree {
   bool CoalesceOrRedistribute(N *node, Transaction *transaction = nullptr);
 
   template <typename N>
-  bool Coalesce(N **neighbor_node, N **node, BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator> **parent,
+  bool Coalesce(N *&neighbor_node, N *&node, BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator> *&parent,
                 int index, Transaction *transaction = nullptr);
 
   template <typename N>
@@ -116,6 +136,30 @@ class BPlusTree {
   KeyComparator comparator_;
   int leaf_max_size_;
   int internal_max_size_;
+
+  std::recursive_mutex root_mutex_;
+  std::once_flag flag_;
+
+  void LockPage(Page *page, Transaction *txn, Operation op);
+  void UnlockPage(Page *page, Transaction *txn, Operation op);
+  void UnlockParentPage(Page *page, Transaction *txn, Operation op);
+  void UnlockAllPage(Transaction *txn, Operation op);
+
+  inline void LockRoot() 
+  { 
+      LOG_INFO("before lock root");
+      root_mutex_.lock(); 
+      LOG_INFO("after lock root");
+    }
+
+  inline void UnLockRoot() { root_mutex_.unlock(); }
+  int split_count_;
+
+  KeyType max_key;
+  bool first_call;
+    int height_;
+
+  Page* FindPreviousPage(page_id_t page_id);
 };
 
 }  // namespace bustub

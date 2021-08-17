@@ -58,16 +58,20 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   int RemoveAndDeleteRecord(const KeyType &key, const KeyComparator &comparator);
 
   // Split and Merge utility methods
-  void MoveHalfTo(BPlusTreeLeafPage *recipient);
-  void MoveAllTo(BPlusTreeLeafPage *recipient);
-  void MoveFirstToEndOf(BPlusTreeLeafPage *recipient);
-  void MoveLastToFrontOf(BPlusTreeLeafPage *recipient);
+  void MoveHalfTo(BPlusTreeLeafPage *recipient, BufferPoolManager *buffer_pool_manager);
+  void MoveAllTo(BPlusTreeLeafPage *recipient, int, BufferPoolManager*);
+  void MoveFirstToEndOf(BPlusTreeLeafPage *recipient, BufferPoolManager*);
+  void MoveLastToFrontOf(BPlusTreeLeafPage *recipient, int parentIndex, BufferPoolManager* buffer_pool_manager);
 
  private:
   void CopyNFrom(MappingType *items, int size);
   void CopyLastFrom(const MappingType &item);
-  void CopyFirstFrom(const MappingType &item);
+  void CopyFirstFrom(const MappingType &item, int parentIndex, BufferPoolManager* buffer_pool_manager);
+  void CopyAllFrom(MappingType *items, int size);
+
   page_id_t next_page_id_;
+  page_id_t previous_page_id_;
   MappingType array[0];
+  
 };
 }  // namespace bustub

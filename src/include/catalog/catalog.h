@@ -75,16 +75,31 @@ class Catalog {
    * @param schema the schema of the new table
    * @return a pointer to the metadata of the new table
    */
-  TableMetadata *CreateTable(Transaction *txn, const std::string &table_name, const Schema &schema) {
-    BUSTUB_ASSERT(names_.count(table_name) == 0, "Table names should be unique!");
-    return nullptr;
-  }
+    TableMetadata *CreateTable(Transaction *txn, const std::string &table_name, const Schema &schema) 
+    {
+        BUSTUB_ASSERT(names_.count(table_name) == 0, "Table names should be unique!");
+
+        std::unique_ptr<TableHeap> table_heap(new TableHeap(bpm_, lock_manager_, log_manager_, txn));
+        TableMetadata *new_table = new TableMetadata(
+                                    schema, 
+                                    table_name, 
+                                    std::unique_ptr<TableHeap>(new TableHeap(bpm_, lock_manager_, log_manager_, txn)), 
+                                    next_table_oid_++);
+        assert(new_table);
+        return new_table;
+    }
 
   /** @return table metadata by name */
-  TableMetadata *GetTable(const std::string &table_name) { return nullptr; }
+    TableMetadata *GetTable(const std::string &table_name) 
+    { 
+      return GetTable(names_[table_name]);
+    }
 
   /** @return table metadata by oid */
-  TableMetadata *GetTable(table_oid_t table_oid) { return nullptr; }
+    TableMetadata *GetTable(table_oid_t table_oid) 
+    { 
+        return tables_[table_oid].get();
+    }
 
   /**
    * Create a new index, populate existing data of the table and return its metadata.
