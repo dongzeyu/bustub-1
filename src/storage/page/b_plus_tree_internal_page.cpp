@@ -14,6 +14,7 @@
 #include <iostream>
 #include <sstream>
 #include "common/exception.h"
+#include "common/logger.h"
 
 namespace bustub {
 /*****************************************************************************
